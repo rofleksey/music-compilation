@@ -106,7 +106,7 @@ def process_clip(clip_info):
 
     author_x = 365
     if clip_info['pos'] < 10:
-        author_x = 280
+        author_x = 275
 
     author_clip = create_animated_text(
         text=clip_info['author'],

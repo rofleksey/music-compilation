@@ -3,7 +3,6 @@
 output.mp4
 clips
 *.png
-*.mp4
 *.webm
 *.mp3
 input.json

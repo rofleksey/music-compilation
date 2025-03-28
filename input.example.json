@@ -1,0 +1,28 @@
+[
+  {
+    "video": "clips/alley.mkv",
+    "startTime": 38,
+    "endTime": 48,
+    "pos": 2,
+    "delta": "+1",
+    "author": "Dorohedoro",
+    "title": "Alley",
+    "labels": [
+      "Your text",
+      "Goes here"
+    ]
+  },
+  {
+    "video": "clips/smoke.mkv",
+    "startTime": 16,
+    "endTime": 26,
+    "pos": 1,
+    "delta": "=",
+    "author": "Dorohedoro",
+    "title": "Smoke",
+    "labels": [
+      "Your text",
+      "Goes here"
+    ]
+  }
+]
