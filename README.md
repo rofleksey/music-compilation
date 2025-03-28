@@ -12,7 +12,8 @@ input.json
 ```json
 [
   {
-    "video": "clips/alley.mkv",
+    "image": "clips/logo.jpg",
+    "audio": "clips/alley.mp3",
     "startTime": 38,
     "endTime": 48,
     "delta": "+1",

@@ -117,8 +117,8 @@ def create_composite_text_image(clip_info, position, output_path):
     label_y = 40
     for label in clip_info.get('labels', {}).get('left', []):
         draw_multiline_text(bg_draw, (25 + shadow_offset, label_y + shadow_offset), label, font_size=40,
-                            fill='#00000059', stroke_width=3, stroke_fill='#00000059')
-        draw_multiline_text(fg_draw, (25, label_y), label, font_size=40, fill='gray', stroke_width=3,
+                            fill='#00000059', stroke_width=2, stroke_fill='#00000059')
+        draw_multiline_text(fg_draw, (25, label_y), label, font_size=40, fill='gray', stroke_width=2,
                             stroke_fill='black')
         label_y += 50
 
