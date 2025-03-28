@@ -1,5 +1,7 @@
 Automatically render Top-N music videos.
 
+https://github.com/user-attachments/assets/93dcfbc6-725c-4bbc-ab2c-40ee2e71f735
+
 ### Usage
 
 input.json
