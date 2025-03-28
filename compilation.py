@@ -1,131 +1,20 @@
-import json
 import argparse
-import textwrap
-from dataclasses import dataclass
+import json
+import os
+import subprocess
+import tempfile
 
-import numpy as np
-from PIL import ImageFilter, ImageDraw, Image
-from moviepy import TextClip, concatenate_videoclips, VideoFileClip, CompositeVideoClip, AudioFileClip, ImageClip, \
-    Effect, Clip
-from moviepy.video.fx import *
-from moviepy.audio.fx import *
-from scipy.ndimage import gaussian_filter
+from PIL import Image, ImageFilter, ImageDraw, ImageFont
 
-parser = argparse.ArgumentParser(description='Create a video compilation from JSON input.')
-parser.add_argument('input_json', help='Input JSON file with video clip information')
-parser.add_argument('output_file', help='Output video file (MP4)')
-parser.add_argument('--preview', action=argparse.BooleanOptionalAction)
-args = parser.parse_args()
+def create_composite_text_image(clip_info, position, output_path):
+    """Create a single composite image with all text elements."""
+    fg = Image.new('RGBA', (1920, 1080), (0, 0, 0, 0))
+    fg_draw = ImageDraw.Draw(fg)
 
-# TODO: test weird source video size
-# TODO: gradient
+    bg = Image.new('RGBA', (1920, 1080), (0, 0, 0, 0))
+    bg_draw = ImageDraw.Draw(bg)
 
-# Set ImageMagick path if needed (uncomment and modify for your system)
-# change_settings({"IMAGEMAGICK_BINARY": "/path/to/convert"})
-
-@dataclass
-class Blur(Effect):
-    intensity: float = None
-
-    def apply(self, clip: Clip) -> Clip:
-        def filter(gf, t):
-            im = gf(t).copy()
-            image = Image.fromarray(im)
-            blurred = image.filter(ImageFilter.GaussianBlur(radius=self.intensity))
-            return np.array(blurred)
-
-        return clip.transform(filter)
-
-def blur(clip, sigma):
-    return clip.image_transform(lambda image: gaussian_filter(image, sigma=sigma), apply_to=['mask'])
-
-def create_animated_text(
-        text='?',
-        x=0,
-        y=0,
-        max_width=40,
-        dy=40,
-        color='#FF0000',
-        stroke_color=None,
-        stroke_width=0,
-        font='fonts/Arial.ttf',
-        size=30,
-        duration=1,
-        text_align='left',
-):
-    wrapped_text = textwrap.wrap(text, max_width)
-    size /= len(wrapped_text)
-
-    result = []
-    cur_y = 0
-    for text in wrapped_text:
-        text_clip = TextClip(
-            text=text,
-            font_size=size,
-            color=color,
-            stroke_color=stroke_color,
-            stroke_width=stroke_width,
-            font=font,
-            text_align=text_align,
-            margin=(100, 100, 100, 100),
-            # transparent=True,
-        ).with_position((0, cur_y))
-
-        shadow_clip = TextClip(
-            text=text,
-            font_size=size,
-            color='#00000059',
-            stroke_color='#00000059',
-            stroke_width=stroke_width,
-            font=font,
-            text_align=text_align,
-            margin=(100, 100, 100, 100),
-            transparent=True,
-        ).with_position((15, cur_y + 10))
-        shadow_clip = blur(shadow_clip, sigma=2) # sigma male
-
-        composite = CompositeVideoClip([shadow_clip, text_clip])
-        result.append(composite)
-        cur_y += dy
-
-    return CompositeVideoClip(result).with_position((x, y)).with_duration(duration).with_effects([CrossFadeIn(1), CrossFadeOut(1)])
-
-
-def process_clip(clip_info, position):
-    if 'video' in clip_info:
-        video = VideoFileClip(clip_info['video']).subclipped(
-            clip_info['startTime'],
-            clip_info['endTime']
-        )
-    elif 'image' in clip_info and 'audio' in clip_info:
-        audio_clip = AudioFileClip(clip_info['audio']).subclipped(
-            clip_info['startTime'],
-            clip_info['endTime']
-        )
-        video = ImageClip(clip_info['image']).with_duration(audio_clip.duration)
-        video = video.with_audio(audio_clip)
-    else:
-        raise ValueError('clip must be either video or image+audio')
-
-    if video.h > video.w:
-        video = video.resized(height=1080)
-    else:
-        video = video.resized(width=1920)
-
-    video = video.with_position(('center', 'center'))
-
-    if video.w != 1920 or video.h != 1080:
-        background = video.without_audio()
-        if background.h > background.w:
-            background = background.resized(width=1920)
-        else:
-            background = background.resized(height=1080)
-        background = background.cropped(x_center=background.w/2, y_center=background.h/2, width=1920, height=1080)
-        background = background.with_effects([Blur(intensity=5)])
-        video = CompositeVideoClip([background, video])
-
-    text_clips = []
-
+    # Position color logic
     pos_color = '#C0B207'
     if position > 40:
         pos_color = '#E77101'
@@ -136,116 +25,255 @@ def process_clip(clip_info, position):
     elif position > 10:
         pos_color = '#020202'
 
-    pos_clip = create_animated_text(
-        text=str(position),
-        font='fonts/ArialBold.ttf',
-        size=215,
-        x=-22,
-        y=728,
-        color=pos_color,
-        stroke_width=9,
-        stroke_color='white',
-        text_align='center',
-        duration=video.duration
-    )
-    text_clips.append(pos_clip)
+    # Load fonts
+    try:
+        bold_font = ImageFont.truetype('fonts/ArialBold.ttf', 215)
+        regular_font = ImageFont.truetype('fonts/Arial.ttf', 90)
+        delta_font = ImageFont.truetype('fonts/Arial.ttf', 130)
+        small_font = ImageFont.truetype('fonts/Arial.ttf', 85)
+    except IOError:
+        print("Warning: Using default fonts")
+        bold_font = ImageFont.load_default()
+        delta_font = ImageFont.load_default()
+        regular_font = ImageFont.load_default()
+        small_font = ImageFont.load_default()
 
-    author_x = 285
-    if position < 10:
-        author_x = 195
+    shadow_offset = 12
 
-    author_clip = create_animated_text(
-        text=clip_info['author'],
-        size=90,
-        max_width=50,
-        x=author_x,
-        y=720,
-        color='gray',
-        stroke_color='black',
-        stroke_width=3,
-        duration=video.duration
-    )
-    text_clips.append(author_clip)
+    # 1. Position number
+    pos_text = str(position)
+    # bbox = draw.textbbox((0, 0), pos_text, font=bold_font)
 
-    title_clip = create_animated_text(
-        text=clip_info['title'],
-        size=90,
-        max_width=50,
-        x=author_x,
-        y=820,
-        color='gray',
-        stroke_color='black',
-        stroke_width=3,
-        duration=video.duration
-    )
-    text_clips.append(title_clip)
+    bg_draw.text((80 + shadow_offset, 795 + shadow_offset), pos_text, font=bold_font, fill='#00000059', stroke_width=9,
+              stroke_fill='#00000059')
+    fg_draw.text((80, 795), pos_text, font=bold_font, fill=pos_color, stroke_width=9, stroke_fill='white')
 
-    if clip_info['delta']:
+    # 2. Author and title
+    author_x = 380 if position >= 10 else 290
+    author_text = clip_info['author']
+    title_text = clip_info['title']
+
+    # Shadow effect
+    bg_draw.text((author_x + shadow_offset, 815 + shadow_offset), author_text, font=regular_font, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
+    bg_draw.text((author_x + shadow_offset, 925 + shadow_offset), title_text, font=regular_font, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
+
+    # Main text
+    fg_draw.text((author_x, 815), author_text, font=regular_font, fill='gray', stroke_width=3, stroke_fill='black')
+    fg_draw.text((author_x, 925), title_text, font=regular_font, fill='gray', stroke_width=3, stroke_fill='black')
+
+    # 3. Delta if exists
+    if clip_info.get('delta'):
         delta_color = '#FF8200'
         if clip_info['delta'].startswith('-'):
             delta_color = '#FF1A00'
         elif clip_info['delta'].startswith('+'):
             delta_color = '#03C400'
+        bg_draw.text((104 + shadow_offset, 335 + shadow_offset), clip_info['delta'], font=delta_font, fill='#00000059')
+        fg_draw.text((104, 335), clip_info['delta'], font=delta_font, fill=delta_color)
 
-        diff_clip = create_animated_text(
-            text=clip_info['delta'],
-            size=125,
-            x=4,
-            y=245,
-            color=delta_color,
-            duration=video.duration
-        )
-        text_clips.append(diff_clip)
-
-    label_y = -52
+    # 4. Labels
+    label_y = 40
     for label in clip_info.get('labels', []):
-        title_clip = create_animated_text(
-            text=label,
-            size=85,
-            max_width=35,
-            dy=30,
-            x=1205,
-            y=label_y,
-            color='gray',
-            stroke_color='black',
-            stroke_width=3,
-            duration=video.duration
-        )
-        text_clips.append(title_clip)
+        bg_draw.text((1305 + shadow_offset, label_y + shadow_offset), label, font=small_font, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
+        fg_draw.text((1305, label_y), label, font=small_font, fill='gray', stroke_width=3, stroke_fill='black')
         label_y += 100
 
-    if text_clips:
-        video = CompositeVideoClip([video] + text_clips)
+    bg = bg.filter(ImageFilter.BoxBlur(5))
+    bg.paste(fg, fg)
 
-    return video.with_effects([AudioFadeIn(0.5), AudioFadeOut(0.5)])
+    bg.save(output_path)
+
+
+def process_clip(clip_info, position, clip_num, temp_dir):
+    """Process a single clip with proper FFmpeg command structure."""
+    # 1. Process source media
+    if 'video' in clip_info:
+        duration = clip_info['endTime'] - clip_info['startTime']
+        # Extract video segment
+        video_segment = os.path.join(temp_dir, f"clip_{clip_num}.mp4")
+        cmd = [
+            'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
+            '-ss', str(clip_info['startTime']),
+            '-to', str(clip_info['endTime']),
+            '-i', clip_info['video'],
+            '-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease',
+            '-c:v', 'libx264', '-preset', 'fast', '-crf', '23', '-an',
+            video_segment
+        ]
+        subprocess.run(cmd, check=True)
+
+        # Extract audio
+        audio_file = os.path.join(temp_dir, f"audio_{clip_num}.aac")
+        cmd = [
+            'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
+            '-ss', str(clip_info['startTime']),
+            '-to', str(clip_info['endTime']),
+            '-i', clip_info['video'],
+            '-c:a', 'aac', '-b:a', '192k',
+            audio_file
+        ]
+        subprocess.run(cmd, check=True)
+    else:
+        # Handle image+audio case
+        duration = clip_info['endTime'] - clip_info['startTime']
+        video_segment = os.path.join(temp_dir, f"clip_{clip_num}.mp4")
+        cmd = [
+            'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
+            '-loop', '1', '-i', clip_info['image'],
+            '-t', str(duration),
+            '-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease',
+            '-c:v', 'libx264', '-preset', 'fast', '-crf', '23', '-pix_fmt', 'yuv420p', '-an',
+            video_segment
+        ]
+        subprocess.run(cmd, check=True)
+
+        # Extract audio
+        audio_file = os.path.join(temp_dir, f"audio_{clip_num}.aac")
+        cmd = [
+            'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
+            '-ss', str(clip_info['startTime']),
+            '-to', str(clip_info['endTime']),
+            '-i', clip_info['audio'],
+            '-c:a', 'aac', '-b:a', '192k',
+            audio_file
+        ]
+        subprocess.run(cmd, check=True)
+
+    # 2. Create blurred background (separate command)
+    bg_file = os.path.join(temp_dir, f"bg_{clip_num}.mp4")
+
+    # First detect the orientation
+    detect_cmd = [
+        'ffprobe', '-v', 'error',
+        '-select_streams', 'v:0',
+        '-show_entries', 'stream=width,height',
+        '-of', 'csv=p=0',
+        video_segment
+    ]
+    result = subprocess.run(detect_cmd, capture_output=True, text=True)
+    width, height = map(int, result.stdout.strip().split(','))
+
+    # Then process based on orientation
+    if width > height:  # Landscape
+        scale_filter = 'scale=-1:1080'
+    else:  # Portrait
+        scale_filter = 'scale=1920:-1'
+
+    cmd = [
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
+        '-i', video_segment,
+        '-vf', (
+            f'{scale_filter},'  # Scale based on orientation
+            'crop=1920:1080,'  # Center crop
+            'gblur=sigma=5,'  # Blur equivalent to intensity=5
+            'setsar=1'  # Set pixel aspect ratio
+        ),
+        '-c:v', 'libx264',
+        '-preset', 'fast',
+        '-crf', '23',
+        '-an',
+        bg_file
+    ]
+    subprocess.run(cmd, check=True)
+
+    # 3. Create single composite text image
+    text_img_path = os.path.join(temp_dir, f"text_{clip_num}.png")
+    create_composite_text_image(clip_info, position, text_img_path)
+
+    # 5. Create base composition (background + main video)
+    base_composition = os.path.join(temp_dir, f"base_{clip_num}.mp4")
+    cmd = [
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
+        '-i', bg_file,
+        '-i', video_segment,
+        '-filter_complex', '[0:v][1:v]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2',
+        '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+        '-an',
+        base_composition
+    ]
+    subprocess.run(cmd, check=True)
+
+    # 6. Final composition with text and fades
+    final_clip = os.path.join(temp_dir, f"final_{clip_num}.mp4")
+    cmd = [
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
+        '-i', base_composition,  # Background + main video
+        '-i', text_img_path,  # Text image (must be PNG with alpha)
+        '-i', audio_file,  # Audio track
+        '-filter_complex',
+        # Process text image with proper alpha handling
+        '[1:v]format=rgba,'
+        'loop=loop=-1:size=1:start=0,'  # Loop single frame for duration
+        # 'setpts=N/FRAME_RATE/TB,'  # Set proper timestamps
+        'fade=in:st=0:d=1:alpha=1,'  # Fade in over 1 second
+        'fade=out:st={fade_out}:d=1:alpha=1,'  # Fade out
+        'trim=duration={duration},'  # Trim to exact duration
+        'format=rgba[text];'  # Maintain alpha channel
+
+        # Overlay text on base video
+        '[0:v][text]overlay=0:0:shortest=1,fps=24'
+        .format(fade_out=duration - 1, duration=duration),
+
+        '-c:v', 'libx264',
+        '-preset', 'fast',
+        '-crf', '23',
+        '-pix_fmt', 'yuv420p',  # Ensure compatible pixel format
+        '-c:a', 'aac',
+        '-b:a', '192k',
+        '-af', 'afade=t=in:st=0:d=0.5,afade=t=out:st={duration}:d=0.5'
+        .format(duration=duration - 0.5),
+        '-shortest',
+        final_clip
+    ]
+    subprocess.run(cmd, check=True)
+
+    return final_clip
 
 
 def create_video_compilation(json_file, output_file):
+    """Main compilation function with proper command structure."""
     with open(json_file) as f:
         clips_data = json.load(f)
 
-    processed_clips = []
+    temp_dir = tempfile.gettempdir()
+    clip_files = []
+
     for i, clip_info in enumerate(clips_data):
-        clip = process_clip(clip_info, len(clips_data) - i)
-        processed_clips.append(clip)
+        position = len(clips_data) - i
+        print(f"Processing clip {i + 1}/{len(clips_data)} (Position {position})")
+        clip_files.append(process_clip(clip_info, position, i, temp_dir))
 
-    final_video = concatenate_videoclips(processed_clips, method="compose")
+    # Concatenate all clips (simple command)
+    concat_file = os.path.join(temp_dir, 'concat.txt')
+    with open(concat_file, 'w') as f:
+        for clip in clip_files:
+            f.write(f"file '{clip}'\n")
 
-    if args.preview:
-        final_video.preview(fps=5)
-    else:
-        final_video.write_videofile(
-            output_file,
-            codec='libx264',
-            audio_codec='aac',
-            fps=24,
-            threads=8,
-            preset='fast',
-            ffmpeg_params=['-crf', '23']
-        )
+    cmd = [
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
+        '-f', 'concat', '-safe', '0', '-i', concat_file,
+        '-c', 'copy',
+        output_file
+    ]
+    subprocess.run(cmd, check=True)
 
-    final_video.close()
-    for clip in processed_clips:
-        clip.close()
+    # Cleanup
+    for f in clip_files + [concat_file]:
+        try:
+            os.remove(f)
+        except:
+            pass
+    try:
+        os.rmdir(temp_dir)
+    except:
+        pass
 
-create_video_compilation(args.input_json, args.output_file)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_json')
+    parser.add_argument('output_file')
+    args = parser.parse_args()
+
+    create_video_compilation(args.input_json, args.output_file)
+    print(f"Successfully created: {args.output_file}")
