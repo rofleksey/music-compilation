@@ -3,8 +3,56 @@ import json
 import os
 import subprocess
 import tempfile
+import textwrap
 
 from PIL import Image, ImageFilter, ImageDraw, ImageFont
+
+def draw_multiline_text(
+        draw,
+        xy: tuple[float, float],
+        text: str,
+        fill=None,
+        font: str = 'fonts/Arial.ttf',
+        font_size: int = 90,
+        max_width: int = 40,
+        dy: int = 35,
+        anchor=None,
+        spacing=4,
+        align="left",
+        direction=None,
+        features=None,
+        language=None,
+        stroke_width=0,
+        stroke_fill=None,
+        embedded_color=False):
+    lines = textwrap.wrap(text, width=max_width)
+    font_size /= len(lines)
+
+    try:
+        actual_font = ImageFont.truetype(font, font_size)
+    except IOError:
+        print("Warning: Using default font")
+        actual_font = ImageFont.load_default()
+
+    cur_x = xy[0]
+    cur_y = xy[1]
+    for line in lines:
+        draw.text((cur_x, cur_y), line,
+                  font=actual_font,
+                  anchor=anchor,
+                  fill=fill,
+                  spacing=spacing,
+                  align=align,
+                  direction=direction,
+                  features=features,
+                  language=language,
+                  stroke_width=stroke_width,
+                  stroke_fill=stroke_fill,
+                  embedded_color=embedded_color)
+        cur_y += dy
+
+
+
 
 def create_composite_text_image(clip_info, position, output_path):
     """Create a single composite image with all text elements."""
@@ -25,28 +73,15 @@ def create_composite_text_image(clip_info, position, output_path):
     elif position > 10:
         pos_color = '#020202'
 
-    # Load fonts
-    try:
-        bold_font = ImageFont.truetype('fonts/ArialBold.ttf', 215)
-        regular_font = ImageFont.truetype('fonts/Arial.ttf', 90)
-        delta_font = ImageFont.truetype('fonts/Arial.ttf', 130)
-        small_font = ImageFont.truetype('fonts/Arial.ttf', 85)
-    except IOError:
-        print("Warning: Using default fonts")
-        bold_font = ImageFont.load_default()
-        delta_font = ImageFont.load_default()
-        regular_font = ImageFont.load_default()
-        small_font = ImageFont.load_default()
-
     shadow_offset = 12
 
     # 1. Position number
     pos_text = str(position)
     # bbox = draw.textbbox((0, 0), pos_text, font=bold_font)
 
-    bg_draw.text((80 + shadow_offset, 795 + shadow_offset), pos_text, font=bold_font, fill='#00000059', stroke_width=9,
-              stroke_fill='#00000059')
-    fg_draw.text((80, 795), pos_text, font=bold_font, fill=pos_color, stroke_width=9, stroke_fill='white')
+    draw_multiline_text(bg_draw, (80 + shadow_offset, 795 + shadow_offset), pos_text, font='fonts/ArialBold.ttf', font_size=215, fill='#00000059', stroke_width=9,
+                        stroke_fill='#00000059')
+    draw_multiline_text(fg_draw, (80, 795), pos_text, font='fonts/ArialBold.ttf', font_size=215, fill=pos_color, stroke_width=9, stroke_fill='white')
 
     # 2. Author and title
     author_x = 380 if position >= 10 else 290
@@ -54,12 +89,12 @@ def create_composite_text_image(clip_info, position, output_path):
     title_text = clip_info['title']
 
     # Shadow effect
-    bg_draw.text((author_x + shadow_offset, 815 + shadow_offset), author_text, font=regular_font, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
-    bg_draw.text((author_x + shadow_offset, 925 + shadow_offset), title_text, font=regular_font, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
+    draw_multiline_text(bg_draw, (author_x + shadow_offset, 815 + shadow_offset), author_text, font_size=90, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
+    draw_multiline_text(bg_draw, (author_x + shadow_offset, 925 + shadow_offset), title_text, font_size=90, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
 
     # Main text
-    fg_draw.text((author_x, 815), author_text, font=regular_font, fill='gray', stroke_width=3, stroke_fill='black')
-    fg_draw.text((author_x, 925), title_text, font=regular_font, fill='gray', stroke_width=3, stroke_fill='black')
+    draw_multiline_text(fg_draw, (author_x, 815), author_text, font_size=90, fill='gray', stroke_width=3, stroke_fill='black')
+    draw_multiline_text(fg_draw, (author_x, 925), title_text, font_size=90, fill='gray', stroke_width=3, stroke_fill='black')
 
     # 3. Delta if exists
     if clip_info.get('delta'):
@@ -68,14 +103,14 @@ def create_composite_text_image(clip_info, position, output_path):
             delta_color = '#FF1A00'
         elif clip_info['delta'].startswith('+'):
             delta_color = '#03C400'
-        bg_draw.text((104 + shadow_offset, 335 + shadow_offset), clip_info['delta'], font=delta_font, fill='#00000059')
-        fg_draw.text((104, 335), clip_info['delta'], font=delta_font, fill=delta_color)
+        draw_multiline_text(bg_draw, (104 + shadow_offset, 335 + shadow_offset), clip_info['delta'], font_size=130, fill='#00000059')
+        draw_multiline_text(fg_draw, (104, 335), clip_info['delta'], font_size=130, fill=delta_color)
 
     # 4. Labels
     label_y = 40
     for label in clip_info.get('labels', []):
-        bg_draw.text((1305 + shadow_offset, label_y + shadow_offset), label, font=small_font, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
-        fg_draw.text((1305, label_y), label, font=small_font, fill='gray', stroke_width=3, stroke_fill='black')
+        draw_multiline_text(bg_draw, (1305 + shadow_offset, label_y + shadow_offset), label, font_size=85, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
+        draw_multiline_text(fg_draw, (1305, label_y), label, font_size=85, fill='gray', stroke_width=3, stroke_fill='black')
         label_y += 100
 
     bg = bg.filter(ImageFilter.BoxBlur(5))
