@@ -1,7 +1,12 @@
 import json
 import argparse
 import textwrap
-from moviepy import TextClip, concatenate_videoclips, VideoFileClip, CompositeVideoClip, AudioFileClip, ImageClip
+from dataclasses import dataclass
+
+import numpy as np
+from PIL import ImageFilter, ImageDraw, Image
+from moviepy import TextClip, concatenate_videoclips, VideoFileClip, CompositeVideoClip, AudioFileClip, ImageClip, \
+    Effect, Clip
 from moviepy.video.fx import *
 from moviepy.audio.fx import *
 from scipy.ndimage import gaussian_filter
@@ -17,6 +22,19 @@ args = parser.parse_args()
 
 # Set ImageMagick path if needed (uncomment and modify for your system)
 # change_settings({"IMAGEMAGICK_BINARY": "/path/to/convert"})
+
+@dataclass
+class Blur(Effect):
+    intensity: float = None
+
+    def apply(self, clip: Clip) -> Clip:
+        def filter(gf, t):
+            im = gf(t).copy()
+            image = Image.fromarray(im)
+            blurred = image.filter(ImageFilter.GaussianBlur(radius=self.intensity))
+            return np.array(blurred)
+
+        return clip.transform(filter)
 
 def blur(clip, sigma):
     return clip.image_transform(lambda image: gaussian_filter(image, sigma=sigma), apply_to=['mask'])
@@ -78,16 +96,33 @@ def process_clip(clip_info, position):
         video = VideoFileClip(clip_info['video']).subclipped(
             clip_info['startTime'],
             clip_info['endTime']
-        ).resized((1920, 1080))
+        )
     elif 'image' in clip_info and 'audio' in clip_info:
         audio_clip = AudioFileClip(clip_info['audio']).subclipped(
             clip_info['startTime'],
             clip_info['endTime']
         )
-        video = ImageClip(clip_info['image']).with_duration(audio_clip.duration).resized((1920, 1080))
+        video = ImageClip(clip_info['image']).with_duration(audio_clip.duration)
         video = video.with_audio(audio_clip)
     else:
         raise ValueError('clip must be either video or image+audio')
+
+    if video.h > video.w:
+        video = video.resized(height=1080)
+    else:
+        video = video.resized(width=1920)
+
+    video = video.with_position(('center', 'center'))
+
+    if video.w != 1920 or video.h != 1080:
+        background = video.without_audio()
+        if background.h > background.w:
+            background = background.resized(width=1920)
+        else:
+            background = background.resized(height=1080)
+        background = background.cropped(x_center=background.w/2, y_center=background.h/2, width=1920, height=1080)
+        background = background.with_effects([Blur(intensity=5)])
+        video = CompositeVideoClip([background, video])
 
     text_clips = []
 
