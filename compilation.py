@@ -1,5 +1,6 @@
 import json
 import argparse
+import textwrap
 from moviepy import TextClip, concatenate_videoclips, VideoFileClip, CompositeVideoClip, AudioFileClip, ImageClip
 from moviepy.video.fx import *
 from moviepy.audio.fx import *
@@ -24,6 +25,8 @@ def create_animated_text(
         text='?',
         x=0,
         y=0,
+        max_width=40,
+        dy=40,
         color='#FF0000',
         stroke_color=None,
         stroke_width=0,
@@ -32,34 +35,42 @@ def create_animated_text(
         duration=1,
         text_align='left',
 ):
-    text_clip = TextClip(
-        text=text,
-        font_size=size,
-        color=color,
-        stroke_color=stroke_color,
-        stroke_width=stroke_width,
-        font=font,
-        text_align=text_align,
-        margin=(20, 20, 20, 20),
-        # transparent=True,
-    ).with_position((0, 0))
+    wrapped_text = textwrap.wrap(text, max_width)
+    size /= len(wrapped_text)
 
-    shadow_clip = TextClip(
-        text=text,
-        font_size=size,
-        color='#00000059',
-        stroke_color='#00000059',
-        stroke_width=stroke_width,
-        font=font,
-        text_align=text_align,
-        margin=(20, 20, 20, 20),
-        transparent=True,
-    ).with_position((15, 10))
-    shadow_clip = blur(shadow_clip, sigma=2) # sigma male
+    result = []
+    cur_y = 0
+    for text in wrapped_text:
+        text_clip = TextClip(
+            text=text,
+            font_size=size,
+            color=color,
+            stroke_color=stroke_color,
+            stroke_width=stroke_width,
+            font=font,
+            text_align=text_align,
+            margin=(100, 100, 100, 100),
+            # transparent=True,
+        ).with_position((0, cur_y))
 
-    composite = CompositeVideoClip([shadow_clip, text_clip])
+        shadow_clip = TextClip(
+            text=text,
+            font_size=size,
+            color='#00000059',
+            stroke_color='#00000059',
+            stroke_width=stroke_width,
+            font=font,
+            text_align=text_align,
+            margin=(100, 100, 100, 100),
+            transparent=True,
+        ).with_position((15, cur_y + 10))
+        shadow_clip = blur(shadow_clip, sigma=2) # sigma male
 
-    return composite.with_position((x, y)).with_start(0).with_duration(duration).with_effects([CrossFadeIn(1), CrossFadeOut(1)])
+        composite = CompositeVideoClip([shadow_clip, text_clip])
+        result.append(composite)
+        cur_y += dy
+
+    return CompositeVideoClip(result).with_position((x, y)).with_duration(duration).with_effects([CrossFadeIn(1), CrossFadeOut(1)])
 
 
 def process_clip(clip_info):
@@ -94,8 +105,8 @@ def process_clip(clip_info):
         text=str(clip_info['pos']),
         font='fonts/ArialBold.ttf',
         size=215,
-        x=58,
-        y=808,
+        x=-22,
+        y=728,
         color=pos_color,
         stroke_width=9,
         stroke_color='white',
@@ -104,15 +115,16 @@ def process_clip(clip_info):
     )
     text_clips.append(pos_clip)
 
-    author_x = 365
+    author_x = 285
     if clip_info['pos'] < 10:
-        author_x = 275
+        author_x = 195
 
     author_clip = create_animated_text(
         text=clip_info['author'],
         size=90,
+        max_width=50,
         x=author_x,
-        y=800,
+        y=720,
         color='gray',
         stroke_color='black',
         stroke_width=3,
@@ -123,8 +135,9 @@ def process_clip(clip_info):
     title_clip = create_animated_text(
         text=clip_info['title'],
         size=90,
+        max_width=50,
         x=author_x,
-        y=900,
+        y=820,
         color='gray',
         stroke_color='black',
         stroke_width=3,
@@ -142,19 +155,21 @@ def process_clip(clip_info):
         diff_clip = create_animated_text(
             text=clip_info['delta'],
             size=125,
-            x=84,
-            y=325,
+            x=4,
+            y=245,
             color=delta_color,
             duration=video.duration
         )
         text_clips.append(diff_clip)
 
-    label_y = 28
+    label_y = -52
     for label in clip_info.get('labels', []):
         title_clip = create_animated_text(
             text=label,
             size=85,
-            x=1285,
+            max_width=35,
+            dy=30,
+            x=1205,
             y=label_y,
             color='gray',
             stroke_color='black',
