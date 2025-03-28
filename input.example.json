@@ -6,10 +6,16 @@
     "delta": "+1",
     "author": "Dorohedoro",
     "title": "Alley",
-    "labels": [
-      "Your text",
-      "Goes here"
-    ]
+    "labels": {
+      "left": [
+        "Your text",
+        "Goes here"
+      ],
+      "right": [
+        "Your text",
+        "Goes here"
+      ]
+    }
   },
   {
     "video": "clips/smoke.mkv",
@@ -18,9 +24,15 @@
     "delta": "=",
     "author": "Dorohedoro",
     "title": "Smoke",
-    "labels": [
-      "Your text",
-      "Goes here"
-    ]
+    "labels": {
+      "left": [
+        "Your text",
+        "Goes here"
+      ],
+      "right": [
+        "Your text",
+        "Goes here"
+      ]
+    }
   }
 ]

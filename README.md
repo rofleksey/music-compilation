@@ -12,29 +12,40 @@ input.json
 ```json
 [
   {
-    "video": "clips/alley.mkv", // video source
-    "startTime": 38, // clip start
-    "endTime": 48, // clip end
-    "delta": "+1", // displayed delta [-N, =, +N]
+    "video": "clips/alley.mkv",
+    "startTime": 38,
+    "endTime": 48,
+    "delta": "+1",
     "author": "Dorohedoro",
     "title": "Alley",
-    "labels": [ // text in the upper right corner of the video
-      "Your text",
-      "Goes here"
-    ]
+    "labels": {
+      "left": [
+        "Your text",
+        "Goes here"
+      ],
+      "right": [
+        "Your text",
+        "Goes here"
+      ]
+    }
   },
   {
-    "image": "clips/smoke.jpg", // audio + image source
-    "audio": "clips/smoke.mp3",
+    "video": "clips/smoke.mkv",
     "startTime": 16,
     "endTime": 26,
     "delta": "=",
     "author": "Dorohedoro",
     "title": "Smoke",
-    "labels": [
-      "Your text",
-      "Goes here"
-    ]
+    "labels": {
+      "left": [
+        "Your text",
+        "Goes here"
+      ],
+      "right": [
+        "Your text",
+        "Goes here"
+      ]
+    }
   }
 ]
 ```
