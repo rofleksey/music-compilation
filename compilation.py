@@ -73,7 +73,7 @@ def create_animated_text(
     return CompositeVideoClip(result).with_position((x, y)).with_duration(duration).with_effects([CrossFadeIn(1), CrossFadeOut(1)])
 
 
-def process_clip(clip_info):
+def process_clip(clip_info, position):
     if 'video' in clip_info:
         video = VideoFileClip(clip_info['video']).subclipped(
             clip_info['startTime'],
@@ -92,17 +92,17 @@ def process_clip(clip_info):
     text_clips = []
 
     pos_color = '#C0B207'
-    if clip_info['pos'] > 40:
+    if position > 40:
         pos_color = '#E77101'
-    elif clip_info['pos'] > 30:
+    elif position > 30:
         pos_color = '#690B02'
-    elif clip_info['pos'] > 20:
+    elif position > 20:
         pos_color = '#040DCB'
-    elif clip_info['pos'] > 10:
+    elif position > 10:
         pos_color = '#020202'
 
     pos_clip = create_animated_text(
-        text=str(clip_info['pos']),
+        text=str(position),
         font='fonts/ArialBold.ttf',
         size=215,
         x=-22,
@@ -116,7 +116,7 @@ def process_clip(clip_info):
     text_clips.append(pos_clip)
 
     author_x = 285
-    if clip_info['pos'] < 10:
+    if position < 10:
         author_x = 195
 
     author_clip = create_animated_text(
@@ -190,8 +190,8 @@ def create_video_compilation(json_file, output_file):
         clips_data = json.load(f)
 
     processed_clips = []
-    for clip_info in clips_data:
-        clip = process_clip(clip_info)
+    for i, clip_info in enumerate(clips_data):
+        clip = process_clip(clip_info, len(clips_data) - i)
         processed_clips.append(clip)
 
     final_video = concatenate_videoclips(processed_clips, method="compose")
