@@ -1,6 +1,6 @@
 Automatically render Top-N music videos.
 
-https://github.com/user-attachments/assets/22575516-0bd5-4959-8c1e-7d238cb5356f
+https://github.com/user-attachments/assets/cad75cc3-e8a4-4364-aa37-274ccc455294
 
 ### Requirements
 
