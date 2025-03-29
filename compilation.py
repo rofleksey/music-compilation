@@ -79,8 +79,8 @@ def create_composite_text_image(clip_info, position, output_path):
     pos_text = str(position)
     # bbox = draw.textbbox((0, 0), pos_text, font=bold_font)
 
-    draw_multiline_text(bg_draw, (80 + shadow_offset, 795 + shadow_offset), pos_text, font='fonts/ArialBold.ttf', font_size=215, fill='#00000059', stroke_width=9,
-                        stroke_fill='#00000059')
+    draw_multiline_text(bg_draw, (80 + shadow_offset, 795 + shadow_offset), pos_text, font='fonts/ArialBold.ttf', font_size=215, fill='#000000A6', stroke_width=9,
+                        stroke_fill='#000000A6')
     draw_multiline_text(fg_draw, (80, 795), pos_text, font='fonts/ArialBold.ttf', font_size=215, fill=pos_color, stroke_width=9, stroke_fill='white')
 
     # 2. Author and title
@@ -89,8 +89,8 @@ def create_composite_text_image(clip_info, position, output_path):
     title_text = clip_info['title']
 
     # Shadow effect
-    draw_multiline_text(bg_draw, (author_x + shadow_offset, 815 + shadow_offset), author_text, font_size=90, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
-    draw_multiline_text(bg_draw, (author_x + shadow_offset, 925 + shadow_offset), title_text, font_size=90, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
+    draw_multiline_text(bg_draw, (author_x + shadow_offset, 815 + shadow_offset), author_text, font_size=90, fill='#000000A6', stroke_width=3, stroke_fill='#000000A6')
+    draw_multiline_text(bg_draw, (author_x + shadow_offset, 925 + shadow_offset), title_text, font_size=90, fill='#000000A6', stroke_width=3, stroke_fill='#000000A6')
 
     # Main text
     draw_multiline_text(fg_draw, (author_x, 815), author_text, font_size=90, fill='gray', stroke_width=3, stroke_fill='black')
@@ -103,13 +103,13 @@ def create_composite_text_image(clip_info, position, output_path):
             delta_color = '#FF1A00'
         elif clip_info['delta'].startswith('+'):
             delta_color = '#03C400'
-        draw_multiline_text(bg_draw, (104 + shadow_offset, 335 + shadow_offset), clip_info['delta'], font_size=130, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
+        draw_multiline_text(bg_draw, (104 + shadow_offset, 335 + shadow_offset), clip_info['delta'], font_size=130, fill='#000000A6', stroke_width=3, stroke_fill='#000000A6')
         draw_multiline_text(fg_draw, (104, 335), clip_info['delta'], font_size=130, fill=delta_color, stroke_width=3, stroke_fill='black')
 
     # 4. Right Labels
     label_y = 40
     for label in clip_info.get('labels', {}).get('right', []):
-        draw_multiline_text(bg_draw, (1305 + shadow_offset, label_y + shadow_offset), label, font_size=85, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
+        draw_multiline_text(bg_draw, (1305 + shadow_offset, label_y + shadow_offset), label, font_size=85, fill='#000000A6', stroke_width=3, stroke_fill='#000000A6')
         draw_multiline_text(fg_draw, (1305, label_y), label, font_size=85, fill='gray', stroke_width=3, stroke_fill='black')
         label_y += 100
 
@@ -117,12 +117,12 @@ def create_composite_text_image(clip_info, position, output_path):
     label_y = 40
     for label in clip_info.get('labels', {}).get('left', []):
         draw_multiline_text(bg_draw, (25 + shadow_offset, label_y + shadow_offset), label, font_size=40,
-                            fill='#00000059', stroke_width=2, stroke_fill='#00000059')
+                            fill='#000000A6', stroke_width=2, stroke_fill='#000000A6')
         draw_multiline_text(fg_draw, (25, label_y), label, font_size=40, fill='gray', stroke_width=2,
                             stroke_fill='black')
         label_y += 50
 
-    bg = bg.filter(ImageFilter.BoxBlur(5))
+    bg = bg.filter(ImageFilter.BoxBlur(7))
     bg.paste(fg, fg)
 
     bg.save(output_path)
@@ -209,7 +209,7 @@ def process_clip(clip_info, position, clip_num, temp_dir):
         '-vf', (
             f'{scale_filter},'  # Scale based on orientation
             'crop=1920:1080,'  # Center crop
-            'gblur=sigma=5,'  # Blur equivalent to intensity=5
+            'gblur=sigma=10,'  # Blur equivalent to intensity=5
             'setsar=1'  # Set pixel aspect ratio
         ),
         '-c:v', 'libx264',
