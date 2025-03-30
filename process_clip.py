@@ -48,9 +48,6 @@ def draw_multiline_text(
                   embedded_color=embedded_color)
         cur_y += dy
 
-
-
-
 def create_composite_text_image(clip_info, position, output_path):
     """Create a single composite image with all text elements."""
     fg = Image.new('RGBA', (1920, 1080), (0, 0, 0, 0))
@@ -76,8 +73,8 @@ def create_composite_text_image(clip_info, position, output_path):
     pos_text = str(position)
     # bbox = draw.textbbox((0, 0), pos_text, font=bold_font)
 
-    draw_multiline_text(bg_draw, (80 + shadow_offset, 795 + shadow_offset), pos_text, font='fonts/ArialBold.ttf', font_size=215, fill='#000000A6', stroke_width=9,
-                        stroke_fill='#000000A6')
+    draw_multiline_text(bg_draw, (80 + shadow_offset, 795 + shadow_offset), pos_text, font='fonts/ArialBold.ttf', font_size=215, fill='#00000059', stroke_width=9,
+                        stroke_fill='#00000059')
     draw_multiline_text(fg_draw, (80, 795), pos_text, font='fonts/ArialBold.ttf', font_size=215, fill=pos_color, stroke_width=9, stroke_fill='white')
 
     # 2. Author and title
@@ -86,8 +83,8 @@ def create_composite_text_image(clip_info, position, output_path):
     title_text = clip_info['title']
 
     # Shadow effect
-    draw_multiline_text(bg_draw, (author_x + shadow_offset, 815 + shadow_offset), author_text, font_size=90, fill='#000000A6', stroke_width=3, stroke_fill='#000000A6')
-    draw_multiline_text(bg_draw, (author_x + shadow_offset, 925 + shadow_offset), title_text, font_size=90, fill='#000000A6', stroke_width=3, stroke_fill='#000000A6')
+    draw_multiline_text(bg_draw, (author_x + shadow_offset, 815 + shadow_offset), author_text, font_size=90, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
+    draw_multiline_text(bg_draw, (author_x + shadow_offset, 925 + shadow_offset), title_text, font_size=90, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
 
     # Main text
     draw_multiline_text(fg_draw, (author_x, 815), author_text, font_size=90, fill='gray', stroke_width=3, stroke_fill='black')
@@ -100,13 +97,13 @@ def create_composite_text_image(clip_info, position, output_path):
             delta_color = '#FF1A00'
         elif clip_info['delta'].startswith('+'):
             delta_color = '#03C400'
-        draw_multiline_text(bg_draw, (104 + shadow_offset, 335 + shadow_offset), clip_info['delta'], font_size=130, fill='#000000A6', stroke_width=3, stroke_fill='#000000A6')
+        draw_multiline_text(bg_draw, (104 + shadow_offset, 335 + shadow_offset), clip_info['delta'], font_size=130, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
         draw_multiline_text(fg_draw, (104, 335), clip_info['delta'], font_size=130, fill=delta_color, stroke_width=3, stroke_fill='black')
 
     # 4. Right Labels
     label_y = 40
     for label in clip_info.get('labels', {}).get('right', []):
-        draw_multiline_text(bg_draw, (1305 + shadow_offset, label_y + shadow_offset), label, font_size=85, fill='#000000A6', stroke_width=3, stroke_fill='#000000A6')
+        draw_multiline_text(bg_draw, (1305 + shadow_offset, label_y + shadow_offset), label, font_size=85, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
         draw_multiline_text(fg_draw, (1305, label_y), label, font_size=85, fill='gray', stroke_width=3, stroke_fill='black')
         label_y += 100
 
@@ -114,7 +111,7 @@ def create_composite_text_image(clip_info, position, output_path):
     label_y = 40
     for label in clip_info.get('labels', {}).get('left', []):
         draw_multiline_text(bg_draw, (25 + shadow_offset, label_y + shadow_offset), label, font_size=40,
-                            fill='#000000A6', stroke_width=2, stroke_fill='#000000A6')
+                            fill='#00000059', stroke_width=2, stroke_fill='#00000059')
         draw_multiline_text(fg_draw, (25, label_y), label, font_size=40, fill='gray', stroke_width=2,
                             stroke_fill='black')
         label_y += 50
@@ -124,10 +121,26 @@ def create_composite_text_image(clip_info, position, output_path):
 
     bg.save(output_path)
 
-def process_clip(clip_info, position, clip_num, temp_dir):
+def process_clip(clip_info, position, clip_num, temp_dir, target_width=1920, target_height=1080):
     """Process a single clip with proper FFmpeg command structure."""
     # 1. Process source media
     if 'video' in clip_info:
+        # First detect the orientation
+        detect_cmd = [
+            'ffprobe', '-v', 'error',
+            '-select_streams', 'v:0',
+            '-show_entries', 'stream=width,height',
+            '-of', 'csv=p=0',
+            clip_info['video']
+        ]
+        result = subprocess.run(detect_cmd, capture_output=True, text=True)
+        width, height = map(int, result.stdout.strip().split(',')[0:2])
+
+        if width > height:
+            scale_filter = f'scale={target_width}:-2'
+        else:
+            scale_filter = f'scale=-2:{target_height}'
+
         duration = clip_info['endTime'] - clip_info['startTime']
         # Extract video segment
         video_segment = os.path.join(temp_dir, f"clip_{clip_num}.mp4")
@@ -136,7 +149,7 @@ def process_clip(clip_info, position, clip_num, temp_dir):
             '-ss', str(clip_info['startTime']),
             '-to', str(clip_info['endTime']),
             '-i', clip_info['video'],
-            '-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease',
+            '-vf', f'{scale_filter}',
             '-c:v', 'libx264', '-preset', 'fast', '-crf', '23', '-an',
             video_segment
         ]
@@ -154,6 +167,22 @@ def process_clip(clip_info, position, clip_num, temp_dir):
         ]
         subprocess.run(cmd, check=True)
     else:
+        # First detect the orientation
+        detect_cmd = [
+            'ffprobe', '-v', 'error',
+            '-select_streams', 'v:0',
+            '-show_entries', 'stream=width,height',
+            '-of', 'csv=p=0',
+            clip_info['image']
+        ]
+        result = subprocess.run(detect_cmd, capture_output=True, text=True)
+        width, height = map(int, result.stdout.strip().split(',')[0:2])
+
+        if width > height:
+            scale_filter = f'scale={target_width}:-2'
+        else:
+            scale_filter = f'scale=-2:{target_height}'
+
         # Handle image+audio case
         duration = clip_info['endTime'] - clip_info['startTime']
         video_segment = os.path.join(temp_dir, f"clip_{clip_num}.mp4")
@@ -161,7 +190,7 @@ def process_clip(clip_info, position, clip_num, temp_dir):
             'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
             '-loop', '1', '-i', clip_info['image'],
             '-t', str(duration),
-            '-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease',
+            '-vf', f'{scale_filter}',
             '-c:v', 'libx264', '-preset', 'fast', '-crf', '23', '-pix_fmt', 'yuv420p', '-an',
             video_segment
         ]
@@ -195,16 +224,16 @@ def process_clip(clip_info, position, clip_num, temp_dir):
 
     # Then process based on orientation
     if width > height:  # Landscape
-        scale_filter = 'scale=-1:1080'
+        scale_filter = f'scale=-1:{target_height}'
     else:  # Portrait
-        scale_filter = 'scale=1920:-1'
+        scale_filter = f'scale={target_width}:-1'
 
     cmd = [
         'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
         '-i', video_segment,
         '-vf', (
             f'{scale_filter},'  # Scale based on orientation
-            'crop=1920:1080,'  # Center crop
+            f'crop={target_width}:{target_height},'  # Center crop
             'gblur=sigma=10,'  # Blur equivalent to intensity=5
             'setsar=1'  # Set pixel aspect ratio
         ),
@@ -242,18 +271,16 @@ def process_clip(clip_info, position, clip_num, temp_dir):
         '-i', audio_file,  # Audio track
         '-filter_complex',
         # Process text image with proper alpha handling
-        '[1:v]format=rgba,'
+        f'[1:v]scale={target_width}:{target_height},format=rgba,'
         'loop=loop=-1:size=1:start=0,'  # Loop single frame for duration
         # 'setpts=N/FRAME_RATE/TB,'  # Set proper timestamps
         'fade=in:st=0:d=1:alpha=1,'  # Fade in over 1 second
-        'fade=out:st={fade_out}:d=1:alpha=1,'  # Fade out
-        'trim=duration={duration},'  # Trim to exact duration
+        f'fade=out:st={duration - 1}:d=1:alpha=1,'  # Fade out
+        f'trim=duration={duration},'  # Trim to exact duration
         'format=rgba[text];'  # Maintain alpha channel
 
         # Overlay text on base video
-        '[0:v][text]overlay=0:0:shortest=1,fps=24'
-        .format(fade_out=duration - 1, duration=duration),
-
+        '[0:v][text]overlay=0:0:shortest=1,fps=24',
         '-c:v', 'libx264',
         '-preset', 'fast',
         '-crf', '23',
@@ -277,6 +304,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('input_json')
+    parser.add_argument('--preview', action=argparse.BooleanOptionalAction)
     parser.add_argument('output_file')
     args = parser.parse_args()
 
@@ -285,7 +313,9 @@ if __name__ == '__main__':
 
     temp_dir = tempfile.gettempdir()
     print('Processing clip...')
-    clip_file = process_clip(clip_data, clip_data['pos'], 0, temp_dir)
+    target_width = 480 if args.preview else 1920
+    target_height = 270 if args.preview else 1080
+    clip_file = process_clip(clip_data, clip_data['pos'], 0, temp_dir, target_width, target_height)
     shutil.copyfile(clip_file, args.output_file)
 
     try:
