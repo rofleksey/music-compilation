@@ -4,6 +4,7 @@ import textwrap
 
 from PIL import Image, ImageFilter, ImageDraw, ImageFont
 
+
 def draw_multiline_text(
         draw,
         xy: tuple[float, float],
@@ -48,6 +49,7 @@ def draw_multiline_text(
                   embedded_color=embedded_color)
         cur_y += dy
 
+
 def create_composite_text_image(clip_info, position, output_path):
     """Create a single composite image with all text elements."""
     fg = Image.new('RGBA', (1920, 1080), (0, 0, 0, 0))
@@ -73,9 +75,11 @@ def create_composite_text_image(clip_info, position, output_path):
     pos_text = str(position)
     # bbox = draw.textbbox((0, 0), pos_text, font=bold_font)
 
-    draw_multiline_text(bg_draw, (80 + shadow_offset, 795 + shadow_offset), pos_text, font='fonts/ArialBold.ttf', font_size=215, fill='#00000059', stroke_width=9,
+    draw_multiline_text(bg_draw, (80 + shadow_offset, 795 + shadow_offset), pos_text, font='fonts/ArialBold.ttf',
+                        font_size=215, fill='#00000059', stroke_width=9,
                         stroke_fill='#00000059')
-    draw_multiline_text(fg_draw, (80, 795), pos_text, font='fonts/ArialBold.ttf', font_size=215, fill=pos_color, stroke_width=9, stroke_fill='white')
+    draw_multiline_text(fg_draw, (80, 795), pos_text, font='fonts/ArialBold.ttf', font_size=215, fill=pos_color,
+                        stroke_width=9, stroke_fill='white')
 
     # 2. Author and title
     author_x = 380 if position >= 10 else 290
@@ -83,12 +87,16 @@ def create_composite_text_image(clip_info, position, output_path):
     title_text = clip_info['title']
 
     # Shadow effect
-    draw_multiline_text(bg_draw, (author_x + shadow_offset, 815 + shadow_offset), author_text, font_size=90, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
-    draw_multiline_text(bg_draw, (author_x + shadow_offset, 925 + shadow_offset), title_text, font_size=90, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
+    draw_multiline_text(bg_draw, (author_x + shadow_offset, 815 + shadow_offset), author_text, font_size=90,
+                        fill='#00000059', stroke_width=3, stroke_fill='#00000059')
+    draw_multiline_text(bg_draw, (author_x + shadow_offset, 925 + shadow_offset), title_text, font_size=90,
+                        fill='#00000059', stroke_width=3, stroke_fill='#00000059')
 
     # Main text
-    draw_multiline_text(fg_draw, (author_x, 815), author_text, font_size=90, fill='gray', stroke_width=3, stroke_fill='black')
-    draw_multiline_text(fg_draw, (author_x, 925), title_text, font_size=90, fill='gray', stroke_width=3, stroke_fill='black')
+    draw_multiline_text(fg_draw, (author_x, 815), author_text, font_size=90, fill='gray', stroke_width=3,
+                        stroke_fill='black')
+    draw_multiline_text(fg_draw, (author_x, 925), title_text, font_size=90, fill='gray', stroke_width=3,
+                        stroke_fill='black')
 
     # 3. Delta if exists
     if clip_info.get('delta'):
@@ -97,14 +105,18 @@ def create_composite_text_image(clip_info, position, output_path):
             delta_color = '#FF1A00'
         elif clip_info['delta'].startswith('+'):
             delta_color = '#03C400'
-        draw_multiline_text(bg_draw, (104 + shadow_offset, 335 + shadow_offset), clip_info['delta'], font_size=130, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
-        draw_multiline_text(fg_draw, (104, 335), clip_info['delta'], font_size=130, fill=delta_color, stroke_width=3, stroke_fill='black')
+        draw_multiline_text(bg_draw, (104 + shadow_offset, 335 + shadow_offset), clip_info['delta'], font_size=130,
+                            fill='#00000059', stroke_width=3, stroke_fill='#00000059')
+        draw_multiline_text(fg_draw, (104, 335), clip_info['delta'], font_size=130, fill=delta_color, stroke_width=3,
+                            stroke_fill='black')
 
     # 4. Right Labels
     label_y = 40
     for label in clip_info.get('labels', {}).get('right', []):
-        draw_multiline_text(bg_draw, (1305 + shadow_offset, label_y + shadow_offset), label, font_size=85, fill='#00000059', stroke_width=3, stroke_fill='#00000059')
-        draw_multiline_text(fg_draw, (1305, label_y), label, font_size=85, fill='gray', stroke_width=3, stroke_fill='black')
+        draw_multiline_text(bg_draw, (1305 + shadow_offset, label_y + shadow_offset), label, font_size=85,
+                            fill='#00000059', stroke_width=3, stroke_fill='#00000059')
+        draw_multiline_text(fg_draw, (1305, label_y), label, font_size=85, fill='gray', stroke_width=3,
+                            stroke_fill='black')
         label_y += 100
 
     # 4. Left Labels
@@ -120,6 +132,7 @@ def create_composite_text_image(clip_info, position, output_path):
     bg.paste(fg, fg)
 
     bg.save(output_path)
+
 
 def process_clip(clip_info, position, clip_num, temp_dir, target_width=1920, target_height=1080):
     """Process a single clip with proper FFmpeg command structure."""
@@ -223,13 +236,14 @@ def process_clip(clip_info, position, clip_num, temp_dir, target_width=1920, tar
     width, height = map(int, result.stdout.strip().split(',')[0:2])
 
     # Then process based on orientation
-    if width > height:  # Landscape
-        scale_filter = f'scale=-1:{target_height}'
-    else:  # Portrait
-        scale_filter = f'scale={target_width}:-1'
+    if width < 1920 or width < 1080:
+        if width > height:  # Landscape
+            scale_filter = f'scale=-2:{target_height}'
+        else:  # Portrait
+            scale_filter = f'scale={target_width}:-2'
 
     cmd = [
-        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'debug',
         '-i', video_segment,
         '-vf', (
             f'{scale_filter},'  # Scale based on orientation
@@ -295,6 +309,7 @@ def process_clip(clip_info, position, clip_num, temp_dir, target_width=1920, tar
     subprocess.run(cmd, check=True)
 
     return final_clip
+
 
 if __name__ == '__main__':
     import argparse
