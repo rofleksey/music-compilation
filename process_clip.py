@@ -23,7 +23,7 @@ def draw_multiline_text(
         stroke_fill=None,
         embedded_color=False):
     lines = textwrap.wrap(text, width=max_width)
-    font_size /= len(lines)
+    font_size /= max(1, len(lines))
 
     try:
         actual_font = ImageFont.truetype(font, font_size)
@@ -191,7 +191,7 @@ def process_clip(clip_info, position, clip_num, temp_dir):
         video_segment
     ]
     result = subprocess.run(detect_cmd, capture_output=True, text=True)
-    width, height = map(int, result.stdout.strip().split(','))
+    width, height = map(int, result.stdout.strip().split(',')[0:2])
 
     # Then process based on orientation
     if width > height:  # Landscape
