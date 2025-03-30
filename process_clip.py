@@ -253,7 +253,7 @@ def process_clip(clip_info, position, clip_num, temp_dir, target_width=1920, tar
             print(width, height)
 
     cmd = [
-        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'debug',
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
         '-i', input_displayable_file,
         '-vf', (
             f'{scale_filter}'  # Scale based on orientation
