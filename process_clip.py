@@ -236,14 +236,14 @@ def process_clip(clip_info, position, clip_num, temp_dir, target_width=1920, tar
     width, height = map(int, result.stdout.strip().split(',')[0:2])
 
     # Then process based on orientation
-    if width < 1920 or width < 1080:
+    if width < target_width or width < target_height:
         if width > height:  # Landscape
             scale_filter = f'scale=-2:{target_height}'
         else:  # Portrait
             scale_filter = f'scale={target_width}:-2'
 
     cmd = [
-        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'debug',
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
         '-i', video_segment,
         '-vf', (
             f'{scale_filter},'  # Scale based on orientation
