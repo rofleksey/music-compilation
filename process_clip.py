@@ -137,7 +137,9 @@ def create_composite_text_image(clip_info, position, output_path):
 def process_clip(clip_info, position, clip_num, temp_dir, target_width=1920, target_height=1080):
     """Process a single clip with proper FFmpeg command structure."""
     # 1. Process source media
+
     if 'video' in clip_info:
+        input_displayable_file = clip_info['video']
         # First detect the orientation
         detect_cmd = [
             'ffprobe', '-v', 'error',
@@ -180,6 +182,7 @@ def process_clip(clip_info, position, clip_num, temp_dir, target_width=1920, tar
         ]
         subprocess.run(cmd, check=True)
     else:
+        input_displayable_file = clip_info['image']
         # First detect the orientation
         detect_cmd = [
             'ffprobe', '-v', 'error',
@@ -230,23 +233,25 @@ def process_clip(clip_info, position, clip_num, temp_dir, target_width=1920, tar
         '-select_streams', 'v:0',
         '-show_entries', 'stream=width,height',
         '-of', 'csv=p=0',
-        video_segment
+        input_displayable_file
     ]
     result = subprocess.run(detect_cmd, capture_output=True, text=True)
     width, height = map(int, result.stdout.strip().split(',')[0:2])
 
     # Then process based on orientation
-    if width < target_width or width < target_height:
+    if width < target_width or height < target_height:
         if width > height:  # Landscape
-            scale_filter = f'scale=-2:{target_height}'
+            scale_filter = f'scale=-2:{target_height},'
         else:  # Portrait
-            scale_filter = f'scale={target_width}:-2'
+            scale_filter = f'scale={target_width}:-2,'
+    else:
+        scale_filter = ''
 
     cmd = [
-        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
-        '-i', video_segment,
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'debug',
+        '-i', input_displayable_file,
         '-vf', (
-            f'{scale_filter},'  # Scale based on orientation
+            f'{scale_filter}'  # Scale based on orientation
             f'crop={target_width}:{target_height},'  # Center crop
             'gblur=sigma=10,'  # Blur equivalent to intensity=5
             'setsar=1'  # Set pixel aspect ratio
