@@ -5,6 +5,7 @@ https://github.com/user-attachments/assets/cad75cc3-e8a4-4364-aa37-274ccc455294
 ### Requirements
 
 * `ffmpeg` in `$PATH`
+* `depthflow` in `$PATH`
 
 ### Usage
 
@@ -12,39 +13,38 @@ input.json
 ```json
 [
   {
-    "image": "clips/logo.jpg",
-    "audio": "clips/alley.mp3",
-    "startTime": 38,
-    "endTime": 48,
-    "delta": "+1",
-    "author": "Dorohedoro",
-    "title": "Alley",
+    "image": "baki.jpg",
+    "audio": "Baki 2018 OST - Fear Sirkosky.opus",
+    "startTime": 2,
+    "endTime": 12,
+    "author": "Baki",
+    "title": "Fear Sikorsky",
     "labels": {
       "left": [
-        "Your text",
-        "Goes here"
+        "Label 1",
+        "Label 2"
       ],
       "right": [
-        "Your text",
-        "Goes here"
+        "Label 3",
+        "Label 4"
       ]
     }
   },
   {
-    "video": "clips/smoke.mkv",
-    "startTime": 16,
-    "endTime": 26,
-    "delta": "=",
-    "author": "Dorohedoro",
-    "title": "Smoke",
+    "image": "jjk_nobara.jpg",
+    "audio": "07 Paranom,Kasper - Impatience ft. Paranom and Kasper.flac",
+    "startTime": 35,
+    "endTime": 45,
+    "author": "Jujutsu Kaisen",
+    "title": "Impatience ft. Paranom and Kasper.flac",
     "labels": {
       "left": [
-        "Your text",
-        "Goes here"
+        "Label 1",
+        "Label 2"
       ],
       "right": [
-        "Your text",
-        "Goes here"
+        "Label 3",
+        "Label 4"
       ]
     }
   }

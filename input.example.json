@@ -1,7 +1,7 @@
 [
   {
-    "image": "/home/roflex/Pictures/OST Rank/baki.jpg",
-    "audio": "/home/roflex/Music/Music/Baki 2018 OST - Fear Sirkosky.opus",
+    "image": "baki.jpg",
+    "audio": "Baki 2018 OST - Fear Sirkosky.opus",
     "startTime": 2,
     "endTime": 12,
     "author": "Baki",
@@ -18,10 +18,10 @@
     }
   },
   {
-    "image": "/home/roflex/Pictures/OST Rank/jjk_nobara.jpg",
-    "audio": "/home/roflex/Music/Music/07 Paranom,Kasper - Impatience ft. Paranom and Kasper.flac",
-    "startTime": 2,
-    "endTime": 10,
+    "image": "jjk_nobara.jpg",
+    "audio": "07 Paranom,Kasper - Impatience ft. Paranom and Kasper.flac",
+    "startTime": 35,
+    "endTime": 45,
     "author": "Jujutsu Kaisen",
     "title": "Impatience ft. Paranom and Kasper.flac",
     "labels": {
