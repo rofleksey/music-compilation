@@ -13,7 +13,7 @@ def draw_multiline_text(
         font: str = 'fonts/AnonymousPro-Regular.ttf',
         font_size: int = 90,
         max_width: int = 35,
-        dy: int = 35,
+        dy: int = 37,
         anchor=None,
         spacing=2,
         align="left",
