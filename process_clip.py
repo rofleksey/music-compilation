@@ -122,7 +122,7 @@ def process_clip(clip_info, position, clip_num, temp_dir, target_width=1920, tar
     duration = int(clip_info['endTime'] - clip_info['startTime'])
     cmd = [
         'depthflow', 'input', '-i', clip_info['image'], 'main',
-        '--time', str(duration), '--speed', '0.5', '-o', parallax_segment
+        '--time', str(duration), '--speed', '0.4', '-o', parallax_segment
     ]
     print('Creating parallax animation...')
     subprocess.run(cmd, check=True)
