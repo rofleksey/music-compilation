@@ -118,12 +118,29 @@ def create_composite_text_image(clip_info, position, output_path):
 
 
 def process_clip(clip_info, position, clip_num, temp_dir, target_width=1920, target_height=1080):
+    detect_cmd = [
+        'ffprobe', '-v', 'error',
+        '-select_streams', 'v:0',
+        '-show_entries', 'stream=width,height',
+        '-of', 'csv=p=0',
+        clip_info['image']
+    ]
+    print('Detecting orientation...')
+    result = subprocess.run(detect_cmd, capture_output=True, text=True)
+    width, height = map(int, result.stdout.strip().split(',')[0:2])
+
     parallax_segment = os.path.join(temp_dir, f"parallax_{clip_num}.mp4")
     duration = int(clip_info['endTime'] - clip_info['startTime'])
-    cmd = [
-        'depthflow', 'input', '-i', clip_info['image'], 'main',
-        '--time', str(duration), '--speed', '0.4', '-o', parallax_segment
-    ]
+    if width < target_width and height < target_height:
+        cmd = [
+            'depthflow', 'waifu2x', 'input', '-i', clip_info['image'], 'main',
+            '--time', str(duration), '--speed', '0.4', '-o', parallax_segment
+        ]
+    else:
+        cmd = [
+            'depthflow', 'input', '-i', clip_info['image'], 'main',
+            '--time', str(duration), '--speed', '0.4', '-o', parallax_segment
+        ]
     print('Creating parallax animation...')
     subprocess.run(cmd, check=True)
     input_displayable_file = parallax_segment
