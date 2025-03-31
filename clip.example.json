@@ -1,0 +1,19 @@
+{
+  "image": "/home/roflex/Pictures/OST Rank/baki.jpg",
+  "audio": "/home/roflex/Music/Music/Baki 2018 OST - Fear Sirkosky.opus",
+  "startTime": 2,
+  "endTime": 12,
+  "pos": 1,
+  "author": "Baki",
+  "title": "Fear Sikorsky",
+  "labels": {
+    "left": [
+      "Label 1",
+      "Label 2"
+    ],
+    "right": [
+      "Label 3",
+      "Label 4"
+    ]
+  }
+}

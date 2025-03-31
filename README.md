@@ -6,9 +6,14 @@ https://github.com/user-attachments/assets/cbe41762-24e2-42f5-a85b-05bcc3fcb7f5
 ### Requirements
 
 * `ffmpeg` in `$PATH`
-* `depthflow` in `$PATH`
+* `depthflow` in `$PATH` (run it once first before using these scripts)
 
-### Usage
+### Features
+
+* Automatic parallax animation (using `Depthflow`)
+* Supports most media formats (thanks to `FFMPEG`)
+
+### Create compilation
 
 input.json
 ```json
@@ -57,4 +62,33 @@ Command line
 python compilation.py input.json output.mp4
 ```
 
+### Create a single clip
+
+input.json
+```json
+{
+  "image": "/home/roflex/Pictures/OST Rank/baki.jpg",
+  "audio": "/home/roflex/Music/Music/Baki 2018 OST - Fear Sirkosky.opus",
+  "startTime": 2,
+  "endTime": 12,
+  "pos": 1,
+  "author": "Baki",
+  "title": "Fear Sikorsky",
+  "labels": {
+    "left": [
+      "Label 1",
+      "Label 2"
+    ],
+    "right": [
+      "Label 3",
+      "Label 4"
+    ]
+  }
+}
+```
+
+Command line
+```bash
+python process_clip.py input.json output.mp4
+```
 
