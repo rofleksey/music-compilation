@@ -31,6 +31,7 @@ def create_video_compilation(json_file, output_file):
         '-c', 'copy',
         output_file
     ]
+    print('Creating compilation video...')
     subprocess.run(cmd, check=True)
 
     # Cleanup

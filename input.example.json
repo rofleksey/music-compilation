@@ -1,38 +1,37 @@
 [
   {
-    "image": "clips/logo.jpg",
-    "audio": "clips/alley.mp3",
-    "startTime": 38,
-    "endTime": 48,
-    "delta": "+1",
-    "author": "Dorohedoro",
-    "title": "Alley",
+    "image": "/home/roflex/Pictures/OST Rank/baki.jpg",
+    "audio": "/home/roflex/Music/Music/Baki 2018 OST - Fear Sirkosky.opus",
+    "startTime": 2,
+    "endTime": 12,
+    "author": "Baki",
+    "title": "Fear Sikorsky",
     "labels": {
       "left": [
-        "Your text",
-        "Goes here"
+        "Label 1",
+        "Label 2"
       ],
       "right": [
-        "Your text",
-        "Goes here"
+        "Label 3",
+        "Label 4"
       ]
     }
   },
   {
-    "video": "clips/smoke.mkv",
-    "startTime": 16,
-    "endTime": 26,
-    "delta": "=",
-    "author": "Dorohedoro",
-    "title": "Smoke",
+    "image": "/home/roflex/Pictures/OST Rank/jjk_nobara.jpg",
+    "audio": "/home/roflex/Music/Music/07 Paranom,Kasper - Impatience ft. Paranom and Kasper.flac",
+    "startTime": 2,
+    "endTime": 10,
+    "author": "Jujutsu Kaisen",
+    "title": "Impatience ft. Paranom and Kasper.flac",
     "labels": {
       "left": [
-        "Your text",
-        "Goes here"
+        "Label 1",
+        "Label 2"
       ],
       "right": [
-        "Your text",
-        "Goes here"
+        "Label 3",
+        "Label 4"
       ]
     }
   }
