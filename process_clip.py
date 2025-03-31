@@ -138,7 +138,7 @@ def process_clip(clip_info, position, clip_num, temp_dir, target_width=1920, tar
     """Process a single clip with proper FFmpeg command structure."""
     # 1. Process source media
 
-    if 'video' in clip_info:
+    if 'video' in clip_info and 'audio' not in clip_info:
         input_displayable_file = clip_info['video']
         # First detect the orientation
         detect_cmd = [
@@ -182,14 +182,14 @@ def process_clip(clip_info, position, clip_num, temp_dir, target_width=1920, tar
         ]
         subprocess.run(cmd, check=True)
     else:
-        input_displayable_file = clip_info['image']
+        input_displayable_file = clip_info['image'] if ('image' in clip_info) else clip_info['video']
         # First detect the orientation
         detect_cmd = [
             'ffprobe', '-v', 'error',
             '-select_streams', 'v:0',
             '-show_entries', 'stream=width,height',
             '-of', 'csv=p=0',
-            clip_info['image']
+            input_displayable_file
         ]
         result = subprocess.run(detect_cmd, capture_output=True, text=True)
         width, height = map(int, result.stdout.strip().split(',')[0:2])
@@ -202,14 +202,24 @@ def process_clip(clip_info, position, clip_num, temp_dir, target_width=1920, tar
         # Handle image+audio case
         duration = clip_info['endTime'] - clip_info['startTime']
         video_segment = os.path.join(temp_dir, f"clip_{clip_num}.mp4")
-        cmd = [
-            'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
-            '-loop', '1', '-i', clip_info['image'],
-            '-t', str(duration),
-            '-vf', f'{scale_filter}',
-            '-c:v', 'libx264', '-preset', 'fast', '-crf', '23', '-pix_fmt', 'yuv420p', '-an',
-            video_segment
-        ]
+        if 'video' in clip_info:
+            cmd = [
+                'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
+                '-i', input_displayable_file,
+                '-t', str(duration),
+                '-vf', f'{scale_filter}',
+                '-c:v', 'libx264', '-preset', 'fast', '-crf', '23', '-pix_fmt', 'yuv420p', '-an',
+                video_segment
+            ]
+        else:
+            cmd = [
+                'ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
+                '-loop', '1', '-i', input_displayable_file,
+                '-t', str(duration),
+                '-vf', f'{scale_filter}',
+                '-c:v', 'libx264', '-preset', 'fast', '-crf', '23', '-pix_fmt', 'yuv420p', '-an',
+                video_segment
+            ]
         subprocess.run(cmd, check=True)
 
         # Extract audio
